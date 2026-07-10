@@ -16,6 +16,15 @@ A running record of issues, observations, and unresolved questions while buildin
 - **Concurrent build and run commands can race.** One parallel test produced `agent_not_found` because a build was rewriting generated output while `flue run` was starting. Run builds and agent prompts sequentially.
 - **Multiple workerd processes may be visible during debugging.** One is the long-running dev server and another belongs to a temporary `flue run` invocation. Do not kill the dev server when cancelling a hung one-off prompt; cancel the `flue run` terminal with `Ctrl-C`.
 
+## Frontend
+
+- **Discovered agents are not HTTP-public by default.** The browser client requires an `AgentRouteHandler` export from `world-cup-signal.ts`; it now exposes the agent under `/api/agents/world-cup-signal/:conversationId`. The route is intentionally unauthenticated until Cloudflare Access or another control is added.
+- **Each browser needs a distinct agent instance ID.** The React client persists a random UUID in `localStorage`; a fixed ID would make every visitor share one durable transcript and queue. The **New conversation** control creates a fresh UUID without deleting the old durable record.
+- **Use Flue's React client rather than implementing Durable Streams.** `@flue/react` restores durable history, follows SSE updates, and reconnects with the correct stream offsets. This is especially useful because source-grounded answers routinely take longer than a normal single model response.
+- **The projected transcript can include tool-only or reasoning-only assistant messages.** Rendering every assistant envelope produced blank rows after a tool completed, because the UI intentionally hides tool payloads. The client now renders only messages with non-empty text parts; the submission status remains the visible research-progress signal.
+- **Flue beta.9's production config omits source `assets` settings.** `flue build` preserves `dist/client` but leaves `assets` out of `dist/<worker>/wrangler.json`, even though `.flue-vite.wrangler.jsonc` includes it. `scripts/add-assets-to-worker-config.mjs` restores the relative asset directory and Worker-first API routes after every build; `wrangler deploy --dry-run` confirmed all four client files are included.
+- **Local frontend development uses two servers.** Run `pnpm dev` for the Worker on port 3583 and `pnpm dev:client` for Vite on port 5173. Vite proxies `/api` to the Worker. `flue dev` alone serves the API but did not serve the static client root in this setup.
+
 ## Retrieval and response quality
 
 - **An Exa-backed response requires two model turns.** The first model call decides to use the tool; Exa searches; the second model call synthesizes the source-backed answer. This is necessary agent-loop overhead for the current design.

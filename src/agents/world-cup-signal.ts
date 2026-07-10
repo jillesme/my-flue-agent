@@ -1,4 +1,4 @@
-import { defineAgent } from '@flue/runtime';
+import { defineAgent, type AgentRouteHandler } from '@flue/runtime';
 import { createWorldCupSearchTool } from '../tools/exa-search';
 
 type Env = {
@@ -7,6 +7,9 @@ type Env = {
 
 export const description =
   'A source-grounded assistant for World Cup news, narratives, and match context.';
+
+// The site is intentionally public for now; protect this route with Cloudflare Access later.
+export const route: AgentRouteHandler = async (_c, next) => next();
 
 export default defineAgent<Env>(({ env }) => ({
   model: 'cloudflare/@cf/google/gemma-4-26b-a4b-it',

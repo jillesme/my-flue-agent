@@ -4,6 +4,6 @@ import { Hono } from 'hono';
 const app = new Hono();
 
 app.get('/health', (c) => c.json({ ok: true }));
-app.route('/', flue());
+app.route('/api', flue());
 
 export default app;
