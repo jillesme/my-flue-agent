@@ -2,7 +2,10 @@ import { defineTool } from '@flue/runtime';
 import Exa from 'exa-js';
 import * as v from 'valibot';
 
-export function createWorldCupSearchTool(apiKey: string | undefined) {
+export function createWorldCupSearchTool(
+  apiKey: string | undefined,
+  options: { numResults?: number } = {},
+) {
   if (!apiKey) {
     throw new Error('EXA_API_KEY must be configured before World Cup Signal can search the web.');
   }
@@ -30,7 +33,7 @@ export function createWorldCupSearchTool(apiKey: string | undefined) {
     async run({ input }) {
       const response = await exa.search(input.query, {
         type: 'auto',
-        numResults: 3,
+        numResults: options.numResults ?? 3,
         contents: {
           highlights: { maxCharacters: 500 },
         },

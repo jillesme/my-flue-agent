@@ -12,7 +12,7 @@ A running record of issues, observations, and unresolved questions while buildin
 ## Local development and invocation
 
 - **`flue run` starts a fresh temporary Cloudflare/workerd runtime for every prompt.** This adds startup cost and prints the remote AI binding warning. It does not attach to an already-running `flue dev` server unless an explicit `--server` path or URL is used.
-- **The current agent intentionally has no public `route` export.** That makes `flue run` convenient for local testing, but prevents directly prompting the persistent `flue dev` server or a deployed Worker until we design and protect an HTTP access surface.
+- **A discovered agent needs a public `route` export before a browser can use it.** `world-cup-signal` now has a pass-through route, so `flue run` remains useful for one-off tests while the persistent dev server and deployed Worker expose the agent at `/api/agents/world-cup-signal/:conversationId`.
 - **Concurrent build and run commands can race.** One parallel test produced `agent_not_found` because a build was rewriting generated output while `flue run` was starting. Run builds and agent prompts sequentially.
 - **Multiple workerd processes may be visible during debugging.** One is the long-running dev server and another belongs to a temporary `flue run` invocation. Do not kill the dev server when cancelling a hung one-off prompt; cancel the `flue run` terminal with `Ctrl-C`.
 
@@ -24,6 +24,14 @@ A running record of issues, observations, and unresolved questions while buildin
 - **The projected transcript can include tool-only or reasoning-only assistant messages.** Rendering every assistant envelope produced blank rows after a tool completed, because the UI intentionally hides tool payloads. The client now renders only messages with non-empty text parts; the submission status remains the visible research-progress signal.
 - **Flue beta.9's production config omits source `assets` settings.** `flue build` preserves `dist/client` but leaves `assets` out of `dist/<worker>/wrangler.json`, even though `.flue-vite.wrangler.jsonc` includes it. `scripts/add-assets-to-worker-config.mjs` restores the relative asset directory and Worker-first API routes after every build; `wrangler deploy --dry-run` confirmed all four client files are included.
 - **Local frontend development uses two servers.** Run `pnpm dev` for the Worker on port 3583 and `pnpm dev:client` for Vite on port 5173. Vite proxies `/api` to the Worker. `flue dev` alone serves the API but did not serve the static client root in this setup.
+
+## Watchtower scheduling and storage
+
+- **Use a Worker-level Cron Trigger for global scheduled work.** `src/cloudflare.ts` invokes the discovered `refresh-watchtower` workflow. The cron is `*/30 * * * *`; because Cloudflare cron uses UTC and has no date range/time-zone policy, the handler checks both the 2026 tournament window and the weekday in `America/New_York` before admitting a run.
+- **D1 is application data, not Flue persistence.** Flue's generated Durable Objects retain conversation and workflow-run state. `world-cup-signal-news` is a separate D1 database for the public news feed, with a unique `source_url` so later refreshes update rather than duplicate a story.
+- **A workflow keeps scheduled editorial work bounded and inspectable.** Each eligible tick invokes `refresh-watchtower`, which has its own run record and uses the Watchtower editor agent to search Exa, retain material source-backed stories, and write them through a narrow D1 tool.
+- **Cron can be tested locally without waiting.** `flue dev`/Wrangler accepts `GET /cdn-cgi/handler/scheduled?format=json`; a local scheduled test successfully admitted the workflow and stored two source-backed stories. Deployed cron propagation can take several minutes, so the production feed was seeded from that verified first run while the recurring trigger takes over.
+- **Tool-following is not a completion guarantee.** Gemma stored valid stories but skipped the final `complete_watchtower_refresh` tool call during the local run. The storage tool therefore updates `watchtower_status` itself, so the public feed still has an accurate last-update signal even when the model omits optional bookkeeping.
 
 ## Retrieval and response quality
 

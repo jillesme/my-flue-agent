@@ -6,6 +6,17 @@
   "ai": {
     "binding": "AI"
   },
+  "d1_databases": [
+    {
+      "binding": "WATCHTOWER_DB",
+      "database_name": "world-cup-signal-news",
+      "database_id": "74dd6053-787f-4223-9ef2-1b3a32e5d699",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    "crons": ["*/30 * * * *"]
+  },
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",
@@ -15,6 +26,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["FlueRegistry", "FlueWorldCupSignalAgent"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["FlueRefreshWatchtowerWorkflow"]
     }
   ]
 }
